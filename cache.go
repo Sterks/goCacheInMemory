@@ -37,8 +37,8 @@ func NewInMemoryCache() *InMemoryCache {
 
 // Get Получение данных из кеша.
 func (cache *InMemoryCache) Get(key Key) (Value, bool) {
-	//cache.dataMutex.RLock()
-	//defer cache.dataMutex.RUnlock()
+	cache.dataMutex.RLock()
+	defer cache.dataMutex.RUnlock()
 
 	value, found := cache.data[key]
 	return value, found
@@ -48,11 +48,11 @@ func (cache *InMemoryCache) Get(key Key) (Value, bool) {
 func (cache *InMemoryCache) GetOrSet(key Key, valueFn func() Value) Value {
 	cache.dataMutex.RLock()
 
-	if value, found := cache.Get(key); !found {
+	if value, found := cache.data[key]; !found {
 		cache.dataMutex.RUnlock()
 		cache.dataMutex.Lock()
 
-		if value, found := cache.Get(key); !found {
+		if value, found := cache.data[key]; !found {
 			value = valueFn()
 			cache.data[key] = value
 			cache.dataMutex.Unlock()
