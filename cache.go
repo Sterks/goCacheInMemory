@@ -35,26 +35,25 @@ func NewInMemoryCache() *InMemoryCache {
 	}
 }
 
+// Get Получение данных из кеша.
 func (cache *InMemoryCache) Get(key Key) (Value, bool) {
-	cache.dataMutex.RLock()
-	defer cache.dataMutex.RUnlock()
+	//cache.dataMutex.RLock()
+	//defer cache.dataMutex.RUnlock()
 
 	value, found := cache.data[key]
 	return value, found
 }
 
-// GetOrSet возвращает значение ключа в случае его существования.
-// Иначе, вычисляет значение ключа при помощи valueFn, сохраняет его в кэш и возвращает это значение.
+// GetOrSet возвращает значение ключа в случае его существования. Иначе, вычисляет значение ключа при помощи valueFn, сохраняет его в кэш и возвращает это значение.
 func (cache *InMemoryCache) GetOrSet(key Key, valueFn func() Value) Value {
 	cache.dataMutex.RLock()
 
-	if value, found := cache.data[key]; !found {
+	if value, found := cache.Get(key); !found {
 		cache.dataMutex.RUnlock()
 		cache.dataMutex.Lock()
 
-		if value, found := cache.data[key]; !found {
+		if value, found := cache.Get(key); !found {
 			value = valueFn()
-			// Записываем значение в cache
 			cache.data[key] = value
 			cache.dataMutex.Unlock()
 			return value

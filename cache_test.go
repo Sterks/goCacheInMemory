@@ -94,11 +94,10 @@ func TestInMemoryCache_GetOrSet2(t *testing.T) {
 	toWrite := 10
 
 	wg.Add(toWrite)
-	// конкурентная запись новых значений
 	for i := 0; i < toWrite; i++ {
 		go func(counter int) {
 			defer wg.Done()
-			calls := 0 // счетчик вызовов генератора значений
+			calls := 0
 			wait := genValue(counter)
 
 			now := c.GetOrSet(strconv.Itoa(counter), func() Value {
@@ -107,41 +106,34 @@ func TestInMemoryCache_GetOrSet2(t *testing.T) {
 			})
 
 			if now != wait {
-				t.Errorf("GetOrSet should return value, generated using the callback; expected: %s, got: %s", wait, now)
+				t.Errorf("GetOrSet должен вернуть значение, ждем: %s, получили: %s", wait, now)
 			}
 
 			if calls != 1 {
-				t.Errorf("value generator should be triggered only once, but have been called %d times", calls)
+				t.Errorf("генератор значений должен запускаться только один раз, но был вызван %d раз", calls)
 			}
 		}(i)
 	}
 	wg.Wait()
-
-	// Все происходит внутри одного теста, для того что бы не наполнять кэш данными заново
-	// примерно точно таким же алгоритмом как выше, будем использовать уже готовые данные для следующих тестов
-	// В какой то мере это не совсем правильно, но для того что бы не плодить одинаковый код написал так>
-
 	wg.Add(toWrite)
-	// Паралельная проверка на то, что все записанные значения присутствуют в кэше,
-	// с правильным ключ-значением
 	for i := 0; i < toWrite; i++ {
 		go func(counter int) {
 			defer wg.Done()
 
-			generatorCalls := 0
+			gen := 0
 			key := strconv.Itoa(counter)
-			expected := genValue(counter)
+			wait := genValue(counter)
 
-			actual := c.GetOrSet(key, func() Value {
-				generatorCalls++
+			now:= c.GetOrSet(key, func() Value {
+				gen++
 				return "----------"
 			})
 
-			if actual != expected {
-				t.Errorf("unexpected value received, expected is: %s, but got: %s", expected, actual)
+			if now != wait {
+				t.Errorf("получено неожиданное значение, ожидается: %s, но получено: %s", wait, now)
 			}
-			if generatorCalls > 0 {
-				t.Errorf("value generator should HAVE NOT been called, should return existing value from the cache")
+			if gen > 0 {
+				t.Errorf("генератор значений НЕ ДОЛЖЕН быть вызван, должен возвращать существующее значение из кеша")
 			}
 		}(i)
 	}
